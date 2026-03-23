@@ -1,0 +1,624 @@
+<html lang="zh-CN"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI人像视频 | AI视频作品集</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- GSAP 动画库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#000000',
+                        secondary: '#333333',
+                        accent: '#ffffff',
+                        light: '#f5f5f5',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'ping-slow': 'ping-slow 3s cubic-bezier(0, 0, 0.2, 1) infinite',
+                    },
+                    keyframes: {
+                        'pulse-slow': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0.4 },
+                        },
+                        'ping-slow': {
+                            '0%': { transform: 'scale(1)', opacity: 1 },
+                            '75%, 100%': { transform: 'scale(2)', opacity: 0 },
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-balance {
+                text-wrap: balance;
+            }
+            .text-shadow {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            .backdrop-blur-sm {
+                backdrop-filter: blur(4px);
+            }
+            .backdrop-blur-lg {
+                backdrop-filter: blur(12px);
+            }
+            .grayscale {
+                filter: grayscale(100%);
+            }
+            .grayscale-0 {
+                filter: grayscale(0%);
+            }
+        }
+    </style>
+    
+    <style>
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+        
+        /* 毛玻璃金属按钮 */
+        .glass-metal-button {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.5rem;
+            padding: 1px;
+        }
+        
+        .glass-metal-button::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom right, rgba(107, 114, 128, 0.8), rgba(75, 85, 99, 0.8));
+            backdrop-filter: blur(8px);
+            z-index: 0;
+        }
+        
+        .glass-metal-button .shine-top-right {
+            position: absolute;
+            top: -1rem;
+            right: -1rem;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            filter: blur(12px);
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
+        
+        .glass-metal-button .shine-bottom-left {
+            position: absolute;
+            bottom: -1.5rem;
+            left: -1rem;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            filter: blur(12px);
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
+        
+        .glass-metal-button:hover .shine-top-right {
+            width: 4rem;
+            height: 4rem;
+            background: rgba(255, 255, 255, 0.6);
+        }
+        
+        .glass-metal-button:hover .shine-bottom-left {
+            width: 3.5rem;
+            height: 3.5rem;
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        .glass-metal-button .button-content {
+            position: relative;
+            z-index: 2;
+            padding: 0.625rem 1.5rem;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            border-radius: 0.5rem;
+            border: 1px solid rgba(107, 114, 128, 0.7);
+        }
+        
+        /* 状态指示灯 */
+        .status-indicator {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            border-radius: 0.5rem;
+            border: 1px solid rgba(107, 114, 128, 0.8);
+        }
+        
+        .status-indicator .pulse {
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .status-indicator .ping {
+            position: absolute;
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            animation: ping-slow 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        
+        /* 视频播放按钮 */
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .play-button:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            background: rgba(0, 0, 0, 0.9);
+        }
+        
+        .play-button::before {
+            content: '';
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 15px 0 15px 26px;
+            border-color: transparent transparent transparent #ffffff;
+            margin-left: 5px;
+        }
+        
+        /* 淡入动画 */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        
+        .fade-in.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* 视频时间轴 */
+        .timeline {
+            position: relative;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        
+        .timeline .progress {
+            position: absolute;
+            height: 100%;
+            background: #fff;
+            border-radius: 2px;
+            width: 0;
+        }
+        
+        .timeline .handle {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .timeline:hover .handle {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-black text-white font-sans">
+    <!-- 导航栏 -->
+    <nav id="navbar" class="fixed top-0 left-0 w-full bg-black bg-opacity-80 backdrop-blur-sm z-50 transition-all duration-300">
+        <div class="container mx-auto px-4 md:px-8">
+            <div class="flex justify-between items-center py-6">
+                <a href="../index.html" class="text-2xl font-bold tracking-tight">TIAN QINGWEN</a>
+                
+                <!-- 桌面导航 -->
+                <div class="hidden md:flex ml-auto space-x-8">
+                    <a href="../index.html" class="text-gray-400 hover:text-white transition-colors duration-300">首页</a>
+                    <a href="../index.html#works" class="text-gray-400 hover:text-white transition-colors duration-300">作品</a>
+                    <a href="../index.html#about" class="text-gray-400 hover:text-white transition-colors duration-300">关于</a>
+                    <a href="../index.html#contact" class="text-gray-400 hover:text-white transition-colors duration-300">联系</a>
+                </div>
+                
+                <!-- 移动端菜单按钮 -->
+                <button id="menu-toggle" class="md:hidden ml-auto text-white focus:outline-none">
+                    <i class="fa fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 移动端导航菜单 -->
+        <div id="mobile-menu" class="md:hidden bg-black bg-opacity-95 hidden absolute top-full left-0 w-full border-t border-gray-800">
+            <div class="container mx-auto px-4 py-4">
+                <a href="../index.html" class="block py-3 text-gray-400 hover:text-white transition-colors">首页</a>
+                <a href="../index.html#works" class="block py-3 text-gray-400 hover:text-white transition-colors">作品</a>
+                <a href="../index.html#about" class="block py-3 text-gray-400 hover:text-white transition-colors">关于</a>
+                <a href="../index.html#contact" class="block py-3 text-gray-400 hover:text-white transition-colors">联系</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 视频展示区 -->
+    <section class="pt-24 pb-16">
+        <div class="container mx-auto px-4">
+            <!-- 返回按钮 -->
+            <a href="../index.html#works" class="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors">
+                <i class="fa fa-arrow-left"></i>
+                <span>返回作品集</span>
+            </a>
+            
+            <!-- 视频播放器 -->
+            <div class="relative mb-12 rounded-lg overflow-hidden bg-black aspect-video">
+                <div id="video-placeholder" class="w-full h-full bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
+                    <img src="https://p26-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/code_assistant/fa6ceeff3cea4b19824ba33ab260199a~tplv-a9rns2rl98-image.image?lk3s=8e244e95&amp;rcl=20260323225749C0A04BF3D26CCD17372A&amp;rrcfp=e75484ac&amp;x-expires=1774882673&amp;x-signature=I6%2FyiQbQ%2B9ceWI12kTPZXMCVZXY%3D" alt="AI人像视频" class="w-full h-full object-cover opacity-80">
+                    <!-- 二维码 -->
+                    <div class="absolute bottom-4 right-4 w-24 h-24 rounded-md overflow-hidden border border-white border-opacity-20 bg-white bg-opacity-10 backdrop-blur-sm">
+                        <img src="https://p26-flow-imagex-download-sign.byteimg.com/tos-cn-i-a9rns2rl98/8d23be61a27a416897c6f347a725a115.png~tplv-a9rns2rl98-24:720:720.png?lk3s=8e244e95&amp;rcl=20260323232704C3173BB0E9146336A841&amp;rrcfp=8a172a1a&amp;x-expires=1774884424&amp;x-signature=dA8Pt38yBwgVrJB8Xp7AuOm69m0%3D" alt="扫码观看" class="w-full h-full object-cover">
+                    </div>
+                </div>
+                <video id="video-player" class="w-full h-full object-cover hidden" controls="">
+                    <!-- 视频源将在点击播放按钮时动态添加 -->
+                    <source src="video.mp4" type="video/mp4">
+                    您的浏览器不支持HTML5视频播放，请升级浏览器！
+                </video>
+                
+                <!-- 视频控制栏 -->
+                <div id="video-controls" class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4 hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <button id="play-pause-btn" class="text-white hover:text-gray-300 transition-colors">
+                            <i class="fa fa-play"></i>
+                        </button>
+                        <span id="current-time" class="text-sm text-gray-300">00:00</span>
+                        <span class="text-sm text-gray-500">/</span>
+                        <span id="duration" class="text-sm text-gray-300">00:00</span>
+                    </div>
+                    <div class="timeline">
+                        <div class="progress"></div>
+                        <div class="handle"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 视频信息 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+                <!-- 左侧信息 -->
+                <div class="md:col-span-2">
+                    <div class="status-indicator mb-6">
+                        <div class="ping"></div>
+                        <div class="pulse"></div>
+                        <span class="text-sm text-gray-300">AI生成视频</span>
+                    </div>
+                    <h1 class="text-4xl md:text-5xl font-bold mb-6">角色短片</h1>
+                    <p class="text-xl text-gray-400 mb-8 leading-relaxed">
+                        这部短片全程由我独立完成创作落地，从粉发女主的人设定位、花瓣法术的视觉风格敲定，到背景音乐挑选、镜头画面构思与节奏把控，均由我独自设计；我结合整体IP世界观调性，打磨角色气质与特效呈现的适配度，通过精准的画面规划，把脑海里治愈柔美的视觉效果落地，并完善个人原创IP的角色矩阵与世界观体系
+                    </p>
+                    
+                    <!-- 创作理念 -->
+                    <div class="mb-12 fade-in active">
+                        <h2 class="text-2xl font-semibold mb-4 text-white">创作理念</h2>
+                        <p class="text-gray-400 mb-4 leading-relaxed">
+                            除白清寒个人向内容外，我同步创作了系列配套角色短片，围绕核心IP世界观，塑造了与女主命运交织的多位配角形象，补齐女主故事线之外的世界观空白，让整个IP不再是单一角色的独角戏，而是形成有羁绊、有冲突、有完整逻辑的仙侠宇宙。
+                        </p>
+                        <p class="text-gray-400 leading-relaxed">
+                            
+                        </p>
+                    </div>
+                    
+                    <!-- 技术细节 -->
+                    <div class="mb-12 fade-in active" style="transition-delay: 0.2s;">
+                        <h2 class="text-2xl font-semibold mb-4 text-white">技术细节</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h3 class="text-lg font-medium mb-2 text-gray-300">使用工具</h3>
+                                <ul class="space-y-2 text-gray-400">
+                                    <li class="flex items-center gap-2">
+                                        <i class="fa fa-check text-gray-500"></i>
+                                        <span>即梦 (视频生成)</span>
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <i class="fa fa-check text-gray-500"></i>
+                                        <span>Midjourney (图像生成)</span>
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <i class="fa fa-check text-gray-500"></i>
+                                        <span>剪映 (剪辑)</span>
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <i class="fa fa-check text-gray-500"></i>
+                                        <span>豆包（分镜提示词）</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-medium mb-2 text-gray-300">技术参数</h3>
+                                <ul class="space-y-2 text-gray-400">
+                                    <li class="flex items-center gap-2">
+                                        <i class="fa fa-check text-gray-500"></i>
+                                        <span>分辨率: 1920 x 1080</span>
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <i class="fa fa-check text-gray-500"></i>
+                                        <span>帧率: 60fps</span>
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <i class="fa fa-check text-gray-500"></i>
+                                        <span>时长: 3分钟</span>
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <i class="fa fa-check text-gray-500"></i>
+                                        <span>生成迭代: 10+</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 创作过程 -->
+                    <div class="fade-in active" style="transition-delay: 0.4s;">
+                        <h2 class="text-2xl font-semibold mb-4 text-white">创作过程</h2>
+                        <ol class="space-y-4 text-gray-400">
+                            <li class="flex gap-4">
+                                <span class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-sm">1</span>
+                                <div>
+                                    <h3 class="text-lg font-medium mb-1 text-gray-300">故事构思</h3>
+                                    <p>构思多个短剧故事框架，确定主题、角色和情节发展</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-4">
+                                <span class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-sm">2</span>
+                                <div>
+                                    <h3 class="text-lg font-medium mb-1 text-gray-300">提示词设计</h3>
+                                    <p>精心设计AI提示词，平衡叙事需求与AI生成特性</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-4">
+                                <span class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-sm">3</span>
+                                <div>
+                                    <h3 class="text-lg font-medium mb-1 text-gray-300">视频生成</h3>
+                                    <p>使用即梦平台生成短剧片段，通过反复优化提示词提升质量</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-4">
+                                <span class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-sm">4</span>
+                                <div>
+                                    <h3 class="text-lg font-medium mb-1 text-gray-300">后期制作</h3>
+                                    <p>在剪映中进行剪辑编排，进行二次剪辑，调色</p>
+                                </div>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <!-- 右侧信息 -->
+                <div class="md:col-span-1">
+                    <div class="sticky top-24">
+                        <!-- 基本信息 -->
+                        <div class="bg-black/40 border border-gray-800 rounded-lg p-6 mb-8 fade-in">
+                            <h3 class="text-xl font-semibold mb-4 text-white">作品信息</h3>
+                            <ul class="space-y-4">
+                                <li>
+                                    <p class="text-gray-500 text-sm mb-1">创作年份</p>
+                                    <p class="text-white">2026</p>
+                                </li>
+                                <li>
+                                    <p class="text-gray-500 text-sm mb-1">作品类型</p>
+                                    <p class="text-white">古风/修仙</p>
+                                </li>
+                                <li>
+                                    <p class="text-gray-500 text-sm mb-1">时长</p>
+                                    <p class="text-white">15s</p>
+                                </li>
+                                <li>
+                                    <p class="text-gray-500 text-sm mb-1">分辨率</p>
+                                    <p class="text-white">1920 x 1080</p>
+                                </li>
+                                <li>
+                                    <p class="text-gray-500 text-sm mb-1">使用技术</p>
+                                    <div class="flex flex-wrap gap-2 mt-2">
+                                        <span class="px-3 py-1 bg-black/40 border border-gray-700 rounded-full text-xs text-gray-300">Stable Diffusion</span>
+                                        <span class="px-3 py-1 bg-black/40 border border-gray-700 rounded-full text-xs text-gray-300">即梦</span>
+                                        <span class="px-3 py-1 bg-black/40 border border-gray-700 rounded-full text-xs text-gray-300">剪映</span>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                     
+                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+        
+    </section>
+
+    <script>
+        // 移动端菜单切换
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // 导航栏滚动效果
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('bg-opacity-95');
+                navbar.classList.remove('bg-opacity-80');
+            } else {
+                navbar.classList.add('bg-opacity-80');
+                navbar.classList.remove('bg-opacity-95');
+            }
+        });
+        
+        // 淡入动画
+        document.addEventListener('DOMContentLoaded', function() {
+            const fadeElements = document.querySelectorAll('.fade-in');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            fadeElements.forEach(element => {
+                observer.observe(element);
+            });
+        });
+        
+        // 视频播放功能
+        document.addEventListener('DOMContentLoaded', function() {
+            const playButton = document.getElementById('play-button');
+            const videoPlaceholder = document.getElementById('video-placeholder');
+            const videoPlayer = document.getElementById('video-player');
+            const videoControls = document.getElementById('video-controls');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const currentTimeEl = document.getElementById('current-time');
+            const durationEl = document.getElementById('duration');
+            const timeline = document.querySelector('.timeline');
+            const progress = document.querySelector('.timeline .progress');
+            const handle = document.querySelector('.timeline .handle');
+            
+            // 模拟视频URL（实际项目中替换为真实视频链接）
+            const videoUrl = 'https://pan.baidu.com/s/1QXhykRUuy_JUmFrYH4943Q?pwd=2333';
+            
+            playButton.addEventListener('click', function() {
+                // 显示视频播放器
+                videoPlaceholder.classList.add('hidden');
+                videoPlayer.classList.remove('hidden');
+                videoControls.classList.remove('hidden');
+                
+                // 创建视频源
+                const source = document.createElement('source');
+                source.src = videoUrl;
+                source.type = 'video/mp4';
+                videoPlayer.appendChild(source);
+                
+                // 加载并播放视频
+                videoPlayer.load();
+                videoPlayer.play();
+                
+                // 更新播放/暂停按钮图标
+                playPauseBtn.innerHTML = '<i class="fa fa-pause"></i>';
+            });
+            
+            // 播放/暂停按钮
+            playPauseBtn.addEventListener('click', function() {
+                if (videoPlayer.paused) {
+                    videoPlayer.play();
+                    playPauseBtn.innerHTML = '<i class="fa fa-pause"></i>';
+                } else {
+                    videoPlayer.pause();
+                    playPauseBtn.innerHTML = '<i class="fa fa-play"></i>';
+                }
+            });
+            
+            // 更新时间显示
+            videoPlayer.addEventListener('timeupdate', function() {
+                const currentMinutes = Math.floor(videoPlayer.currentTime / 60);
+                const currentSeconds = Math.floor(videoPlayer.currentTime % 60);
+                currentTimeEl.textContent = `${currentMinutes.toString().padStart(2, '0')}:${currentSeconds.toString().padStart(2, '0')}`;
+                
+                // 更新进度条
+                const progressPercent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+                progress.style.width = `${progressPercent}%`;
+                handle.style.left = `${progressPercent}%`;
+            });
+            
+            // 视频加载完成后更新总时长
+            videoPlayer.addEventListener('loadedmetadata', function() {
+                const durationMinutes = Math.floor(videoPlayer.duration / 60);
+                const durationSeconds = Math.floor(videoPlayer.duration % 60);
+                durationEl.textContent = `${durationMinutes.toString().padStart(2, '0')}:${durationSeconds.toString().padStart(2, '0')}`;
+            });
+            
+            // 视频结束后重置
+            videoPlayer.addEventListener('ended', function() {
+                playPauseBtn.innerHTML = '<i class="fa fa-play"></i>';
+                videoPlayer.currentTime = 0;
+            });
+            
+            // 时间轴点击跳转
+            timeline.addEventListener('click', function(e) {
+                const rect = timeline.getBoundingClientRect();
+                const pos = (e.clientX - rect.left) / rect.width;
+                videoPlayer.currentTime = pos * videoPlayer.duration;
+            });
+            
+            // 处理拖动
+            let isDragging = false;
+            
+            handle.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                
+                const rect = timeline.getBoundingClientRect();
+                const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                videoPlayer.currentTime = pos * videoPlayer.duration;
+            });
+            
+            document.addEventListener('mouseup', function() {
+                isDragging = false;
+            });
+        });
+    </script>
+
+</body></html>

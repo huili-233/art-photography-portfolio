@@ -1,0 +1,359 @@
+<html lang="zh-CN"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人摄影作品 | 视觉作品集</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- GSAP 动画库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#000000',
+                        secondary: '#333333',
+                        accent: '#ffffff',
+                        light: '#f5f5f5',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'ping-slow': 'ping-slow 3s cubic-bezier(0, 0, 0.2, 1) infinite',
+                    },
+                    keyframes: {
+                        'pulse-slow': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0.4 },
+                        },
+                        'ping-slow': {
+                            '0%': { transform: 'scale(1)', opacity: 1 },
+                            '75%, 100%': { transform: 'scale(2)', opacity: 0 },
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-balance {
+                text-wrap: balance;
+            }
+            .text-shadow {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            .backdrop-blur-sm {
+                backdrop-filter: blur(4px);
+            }
+            .backdrop-blur-lg {
+                backdrop-filter: blur(12px);
+            }
+            .grayscale {
+                filter: grayscale(100%);
+            }
+            .grayscale-0 {
+                filter: grayscale(0%);
+            }
+            /* 瀑布流布局 */
+            .masonry-grid {
+                column-count: 1;
+                column-gap: 24px;
+            }
+            @screen md {
+                .masonry-grid {
+                    column-count: 2;
+                }
+            }
+            @screen lg {
+                .masonry-grid {
+                    column-count: 3;
+                }
+            }
+            .masonry-item {
+                break-inside: avoid;
+                margin-bottom: 24px;
+            }
+            .photo-hover {
+                transition: all 0.4s ease;
+            }
+            .photo-hover:hover {
+                transform: scale(1.02);
+                filter: brightness(1.05);
+            }
+        }
+    </style>
+    
+    <style>
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+        
+        /* 毛玻璃金属按钮 */
+        .glass-metal-button {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.5rem;
+            padding: 1px;
+        }
+        
+        .glass-metal-button::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom right, rgba(107, 114, 128, 0.8), rgba(75, 85, 99, 0.8));
+            backdrop-filter: blur(8px);
+            z-index: 0;
+        }
+        
+        .glass-metal-button .shine-top-right {
+            position: absolute;
+            top: -1rem;
+            right: -1rem;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            filter: blur(12px);
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
+        
+        .glass-metal-button .shine-bottom-left {
+            position: absolute;
+            bottom: -1.5rem;
+            left: -1rem;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            filter: blur(12px);
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
+        
+        .glass-metal-button:hover .shine-top-right {
+            width: 4rem;
+            height: 4rem;
+            background: rgba(255, 255, 255, 0.6);
+        }
+        
+        .glass-metal-button:hover .shine-bottom-left {
+            width: 3.5rem;
+            height: 3.5rem;
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        .glass-metal-button .button-content {
+            position: relative;
+            z-index: 2;
+            padding: 0.625rem 1.5rem;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            border-radius: 0.5rem;
+            border: 1px solid rgba(107, 114, 128, 0.7);
+        }
+        
+        /* 状态指示灯 */
+        .status-indicator {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            border-radius: 0.5rem;
+            border: 1px solid rgba(107, 114, 128, 0.8);
+        }
+        
+        .status-indicator .pulse {
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .status-indicator .ping {
+            position: absolute;
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            animation: ping-slow 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        
+
+        
+        /* 淡入动画 */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        
+        .fade-in.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+
+    </style>
+</head>
+<body class="bg-black text-white font-sans">
+    <!-- 导航栏 -->
+    <nav id="navbar" class="fixed top-0 left-0 w-full bg-black bg-opacity-80 backdrop-blur-sm z-50 transition-all duration-300">
+        <div class="container mx-auto px-4 md:px-8">
+            <div class="flex justify-between items-center py-6">
+                <a href="../index.html" class="text-2xl font-bold tracking-tight">TIAN QINGWEN</a>
+                
+                <!-- 桌面导航 -->
+                <div class="hidden md:flex ml-auto space-x-8">
+                    <a href="../index.html" class="text-gray-400 hover:text-white transition-colors duration-300">首页</a>
+                    <a href="../index.html#works" class="text-gray-400 hover:text-white transition-colors duration-300">作品</a>
+                    <a href="../index.html#about" class="text-gray-400 hover:text-white transition-colors duration-300">关于</a>
+                    <a href="../index.html#contact" class="text-gray-400 hover:text-white transition-colors duration-300">联系</a>
+                </div>
+                
+                <!-- 移动端菜单按钮 -->
+                <button id="menu-toggle" class="md:hidden ml-auto text-white focus:outline-none">
+                    <i class="fa fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 移动端导航菜单 -->
+        <div id="mobile-menu" class="md:hidden bg-black bg-opacity-95 hidden absolute top-full left-0 w-full border-t border-gray-800">
+            <div class="container mx-auto px-4 py-4">
+                <a href="../index.html" class="block py-3 text-gray-400 hover:text-white transition-colors">首页</a>
+                <a href="../index.html#works" class="block py-3 text-gray-400 hover:text-white transition-colors">作品</a>
+                <a href="../index.html#about" class="block py-3 text-gray-400 hover:text-white transition-colors">关于</a>
+                <a href="../index.html#contact" class="block py-3 text-gray-400 hover:text-white transition-colors">联系</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 摄影作品展示区 -->
+    <section class="pt-24 pb-16">
+        <div class="container mx-auto px-4">
+            <!-- 返回按钮 -->
+            <a href="../index.html#works" class="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors">
+                <i class="fa fa-arrow-left"></i>
+                <span>返回作品集</span>
+            </a>
+            
+            <!-- 极简标题和简介 -->
+            <div class="text-center mb-12 fade-in">
+            
+                <h1 class="text-4xl md:text-5xl font-bold mb-6">二次元摄影作品</h1>
+                <p class="text-xl text-gray-400 mb-8 leading-relaxed max-w-2xl mx-auto">
+                    用镜头定格光影瞬间，聚焦风景、人像与生活细节
+                </p>
+            </div>
+            
+            <!-- 图片瀑布流 -->
+            <div class="masonry-grid max-w-6xl mx-auto fade-in">
+                <!-- 摄影作品1 -->
+                <div class="masonry-item">
+                    <img src="https://p26-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/code_assistant/f617a125ddd5419cbe6178fd1612d9d8~tplv-a9rns2rl98-image.image?lk3s=8e244e95&amp;rcl=202603222357116A7B44704202F3C25FAB&amp;rrcfp=e75484ac&amp;x-expires=1774799833&amp;x-signature=KzXaYYMacaKxITldUIdJutMablU%3D" alt="摄影作品-风景" class="w-full rounded-lg shadow-md photo-hover object-cover">
+                </div>
+                
+                <!-- 摄影作品2 -->
+                <div class="masonry-item">
+                    <img src="https://p11-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/code_assistant/8250b434c5704046835b0a7ef38c447a~tplv-a9rns2rl98-image.image?lk3s=8e244e95&amp;rcl=202603230007463E2C9DF63A9AF536C330&amp;rrcfp=e75484ac&amp;x-expires=1774800467&amp;x-signature=2gvJS24945lPksV7ilm1mMlKOPg%3D" alt="摄影作品-人像" class="w-full rounded-lg shadow-md photo-hover object-cover">
+                </div>
+                
+                <!-- 摄影作品3 -->
+                <div class="masonry-item">
+                    <img src="https://p6-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/code_assistant/340db47a73fe48e0871bba394da8c6c6~tplv-a9rns2rl98-image.image?lk3s=8e244e95&amp;rcl=20260323000126528AD05CA520A5CE3009&amp;rrcfp=e75484ac&amp;x-expires=1774800091&amp;x-signature=Jw8%2BzbCMXHjGlnpAY77CwAcQEbY%3D" alt="摄影作品-街拍" class="w-full rounded-lg shadow-md photo-hover object-cover">
+                </div>
+                
+                <!-- 摄影作品4 -->
+                <div class="masonry-item">
+                    <img src="https://p26-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/code_assistant/23e23d00b1844f4ca89742b9f80cc824~tplv-a9rns2rl98-image.image?lk3s=8e244e95&amp;rcl=202603230008528E6DAF86E9854BCCD492&amp;rrcfp=e75484ac&amp;x-expires=1774800535&amp;x-signature=Ujn3O89YgsfLR8B%2FL9P%2BADeLpDU%3D" alt="摄影作品-静物" class="w-full rounded-lg shadow-md photo-hover object-cover">
+                </div>
+                
+                <!-- 摄影作品5 -->
+                <div class="masonry-item">
+                    <img src="https://p11-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/code_assistant/ebac2314e6574dcf97821f8056e1abbd~tplv-a9rns2rl98-image.image?lk3s=8e244e95&amp;rcl=20260323000722CF5F80AA7A82C1F5A017&amp;rrcfp=e75484ac&amp;x-expires=1774800443&amp;x-signature=gkScVP4iWJtyoNfYVSCQVR5oSJk%3D" alt="摄影作品-夜景" class="w-full rounded-lg shadow-md photo-hover object-cover">
+                </div>
+                
+                <!-- 摄影作品6 -->
+                <div class="masonry-item">
+                    <img src="https://p11-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/code_assistant/80e177dff6654d24929b5981b93107c9~tplv-a9rns2rl98-image.image?lk3s=8e244e95&amp;rcl=202603230006478AB114B5A01F93E09541&amp;rrcfp=e75484ac&amp;x-expires=1774800411&amp;x-signature=258OkD2QLlSD%2FgbjYFrhCk0VQAE%3D" alt="摄影作品-纪实" class="w-full rounded-lg shadow-md photo-hover object-cover">
+                </div>
+                
+                <!-- 摄影作品7 -->
+                <div class="masonry-item">
+                    <img src="https://p11-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/code_assistant/d63311c9105645e2863558c93f0a5b9a~tplv-a9rns2rl98-image.image?lk3s=8e244e95&amp;rcl=20260324030939C7B50284E8297F3E954F&amp;rrcfp=e75484ac&amp;x-expires=1774897780&amp;x-signature=RuR6YeZsAHVsDcdUHknneLmE6c4%3D" alt="摄影作品-风景" class="w-full rounded-lg shadow-md photo-hover object-cover">
+                </div>
+            </div>
+            
+            <!-- 版权信息 -->
+            <div class="text-center mt-12 text-gray-500 text-sm fade-in">
+                <p>© 2026 原创摄影作品 保留所有权利</p>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // 导航栏滚动效果
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('bg-opacity-95');
+                navbar.classList.remove('bg-opacity-80');
+            } else {
+                navbar.classList.add('bg-opacity-80');
+                navbar.classList.remove('bg-opacity-95');
+            }
+        });
+
+        // 移动端菜单
+        const menuToggle = document.getElementById('menu-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+        menuToggle.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // 淡入动画
+        document.addEventListener('DOMContentLoaded', () => {
+            const fadeElements = document.querySelectorAll('.fade-in');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, {
+                threshold: 0.1
+            });
+            
+            fadeElements.forEach(el => {
+                observer.observe(el);
+            });
+        });
+    </script>
+
+</body></html>
